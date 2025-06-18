@@ -1,0 +1,62 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Django: Run Development Server",
+      "type": "shell",
+      "command": "cd backend && uv run python manage.py runserver",
+      "group": "build",
+      "problemMatcher": [],
+      "isBackground": true,
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Django: Make Migrations",
+      "type": "shell",
+      "command": "cd backend && uv run python manage.py makemigrations",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Django: Migrate Database",
+      "type": "shell",
+      "command": "cd backend && uv run python manage.py migrate",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Flutter: Get Dependencies",
+      "type": "shell",
+      "command": "cd frontend/rideshare_app && flutter pub get",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Flutter: Run App",
+      "type": "shell",
+      "command": "cd frontend/rideshare_app && flutter run",
+      "group": "build",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Setup: Install All Dependencies",
+      "type": "shell",
+      "command": "cd backend && uv sync && cd ../frontend/rideshare_app && flutter pub get",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Django: Create Superuser",
+      "type": "shell",
+      "command": "cd backend && uv run python manage.py createsuperuser",
+      "group": "build",
+      "problemMatcher": []
+    }
+  ]
+}

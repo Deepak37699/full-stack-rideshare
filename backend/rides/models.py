@@ -1,0 +1,134 @@
+from django.db import models
+from django.conf import settings
+from django.utils import timezone
+import uuid
+
+class Ride(models.Model):
+    """Main ride model"""
+    
+    STATUS_CHOICES = [
+        ('requested', 'Requested'),
+        ('accepted', 'Accepted'),
+        ('driver_arrived', 'Driver Arrived'),
+        ('in_progress', 'In Progress'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
+    ]
+    
+    RIDE_TYPE_CHOICES = [
+        ('standard', 'Standard'),
+        ('premium', 'Premium'),
+        ('luxury', 'Luxury'),
+        ('shared', 'Shared'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    rider = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='rides_as_rider')
+    driver = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='rides_as_driver')
+    
+    # Pickup and destination
+    pickup_address = models.TextField()
+    pickup_latitude = models.DecimalField(max_digits=9, decimal_places=6)
+    pickup_longitude = models.DecimalField(max_digits=9, decimal_places=6)
+    destination_address = models.TextField()
+    destination_latitude = models.DecimalField(max_digits=9, decimal_places=6)
+    destination_longitude = models.DecimalField(max_digits=9, decimal_places=6)
+    
+    # Ride details
+    ride_type = models.CharField(max_length=20, choices=RIDE_TYPE_CHOICES, default='standard')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='requested')
+    estimated_fare = models.DecimalField(max_digits=8, decimal_places=2)
+    actual_fare = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    estimated_distance = models.DecimalField(max_digits=8, decimal_places=2)  # in kilometers
+    actual_distance = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    estimated_duration = models.PositiveIntegerField()  # in minutes
+    actual_duration = models.PositiveIntegerField(null=True, blank=True)
+    
+    # Timestamps
+    requested_at = models.DateTimeField(auto_now_add=True)
+    accepted_at = models.DateTimeField(null=True, blank=True)
+    driver_arrived_at = models.DateTimeField(null=True, blank=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+    
+    # Additional info
+    special_instructions = models.TextField(blank=True)
+    cancellation_reason = models.TextField(blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"Ride {self.id} - {self.rider.username} to {self.destination_address[:30]}"
+    
+    @property
+    def duration_minutes(self):
+        if self.started_at and self.completed_at:
+            return int((self.completed_at - self.started_at).total_seconds() / 60)
+        return None
+    
+    def accept_ride(self, driver):
+        """Accept the ride with a driver"""
+        self.driver = driver
+        self.status = 'accepted'
+        self.accepted_at = timezone.now()
+        self.save()
+    
+    def start_ride(self):
+        """Start the ride"""
+        self.status = 'in_progress'
+        self.started_at = timezone.now()
+        self.save()
+    
+    def complete_ride(self, actual_fare=None, actual_distance=None):
+        """Complete the ride"""
+        self.status = 'completed'
+        self.completed_at = timezone.now()
+        if actual_fare:
+            self.actual_fare = actual_fare
+        if actual_distance:
+            self.actual_distance = actual_distance
+        self.actual_duration = self.duration_minutes
+        self.save()
+    
+    def cancel_ride(self, reason=""):
+        """Cancel the ride"""
+        self.status = 'cancelled'
+        self.cancelled_at = timezone.now()
+        self.cancellation_reason = reason
+        self.save()
+
+
+class RideRating(models.Model):
+    """Rating system for rides"""
+    
+    ride = models.OneToOneField(Ride, on_delete=models.CASCADE, related_name='rating')
+    rider_rating = models.PositiveIntegerField(null=True, blank=True)  # 1-5 rating by rider
+    driver_rating = models.PositiveIntegerField(null=True, blank=True)  # 1-5 rating by driver
+    rider_comment = models.TextField(blank=True)
+    driver_comment = models.TextField(blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"Rating for Ride {self.ride.id}"
+
+
+class RideLocation(models.Model):
+    """Track real-time location during ride"""
+    
+    ride = models.ForeignKey(Ride, on_delete=models.CASCADE, related_name='locations')
+    latitude = models.DecimalField(max_digits=9, decimal_places=6)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    speed = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)  # km/h
+    
+    class Meta:
+        ordering = ['-timestamp']
+    
+    def __str__(self):
+        return f"Location for Ride {self.ride.id} at {self.timestamp}"

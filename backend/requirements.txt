@@ -1,0 +1,14 @@
+# This file is generated from pyproject.toml using uv
+# To install dependencies, run: uv pip install -r requirements.txt
+
+django==5.2.3
+djangorestframework==3.16.0
+django-cors-headers==4.7.0
+djangorestframework-simplejwt==5.5.0
+django-channels==0.7.0
+channels==4.2.2
+channels-redis==4.2.1
+celery==5.5.3
+redis==6.2.0
+python-decouple==3.8
+pillow==11.2.1
