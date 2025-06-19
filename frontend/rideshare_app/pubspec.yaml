@@ -19,22 +19,51 @@ dependencies:
 
   # HTTP and API
   http: ^1.2.2
+  dio: ^5.4.3+1
 
   # Local Storage
   shared_preferences: ^2.3.4
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
 
   # Maps and Location
+  google_maps_flutter: ^2.6.1
   geolocator: ^10.1.1
+  geocoding: ^3.0.0
+
+  # Real-time Communication
+  socket_io_client: ^2.0.3+1
+  web_socket_channel: ^2.4.5
+
+  # Notifications
+  flutter_local_notifications: ^17.2.4
+  firebase_messaging: ^14.9.4
+  firebase_core: ^2.32.0
 
   # Image handling
   image_picker: ^1.1.2
 
   # Authentication
   flutter_secure_storage: ^9.2.2
-
   # Utilities
   uuid: ^4.5.1
   intl: ^0.19.0
+  url_launcher: ^6.2.6
+  permission_handler: ^11.3.1
+  share_plus: ^7.2.2
+
+  # Payment
+  flutter_stripe: ^10.1.1
+
+  # Push Notifications
+  firebase_messaging: ^14.9.4
+  firebase_core: ^2.31.1
+
+  # UI Enhancements
+  cached_network_image: ^3.3.1
+  flutter_rating_bar: ^4.0.1
+  animate_do: ^3.3.4
+  shimmer: ^3.0.0
 
 dev_dependencies:
   flutter_test:

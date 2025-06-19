@@ -14,15 +14,16 @@ class PaymentMethod(models.Model):
     ]
     
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='payment_methods')
-    payment_type = models.CharField(max_length=20, choices=PAYMENT_TYPE_CHOICES)
+    method_type = models.CharField(max_length=20, choices=PAYMENT_TYPE_CHOICES)
     is_default = models.BooleanField(default=False)
     
     # Card details (encrypted in production)
-    card_last_four = models.CharField(max_length=4, blank=True)
-    card_brand = models.CharField(max_length=20, blank=True)
-    card_token = models.CharField(max_length=255, blank=True)  # Payment processor token
+    card_number = models.CharField(max_length=255, blank=True)  # This should be encrypted
+    cardholder_name = models.CharField(max_length=100, blank=True)
+    expiry_month = models.PositiveIntegerField(null=True, blank=True)
+    expiry_year = models.PositiveIntegerField(null=True, blank=True)
     
-    # PayPal/Digital wallet details
+    # External wallet details
     external_id = models.CharField(max_length=255, blank=True)
     
     is_active = models.BooleanField(default=True)
@@ -30,12 +31,12 @@ class PaymentMethod(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        unique_together = ['user', 'payment_type', 'external_id']
+        unique_together = ['user', 'method_type', 'external_id']
     
     def __str__(self):
-        if self.payment_type == 'card':
-            return f"{self.card_brand} ending in {self.card_last_four}"
-        return f"{self.get_payment_type_display()}"
+        if self.method_type == 'card' and self.card_number:
+            return f"Card ending in {self.card_number[-4:]}"
+        return f"{self.get_method_type_display()}"
 
 
 class Payment(models.Model):
@@ -51,7 +52,7 @@ class Payment(models.Model):
     ]
     
     PAYMENT_TYPE_CHOICES = [
-        ('ride_payment', 'Ride Payment'),
+        ('ride_fare', 'Ride Fare'),
         ('tip', 'Tip'),
         ('refund', 'Refund'),
         ('cancellation_fee', 'Cancellation Fee'),
@@ -59,9 +60,8 @@ class Payment(models.Model):
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    ride = models.ForeignKey('rides.Ride', on_delete=models.CASCADE, related_name='payments')
-    payer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='payments_made')
-    payee = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='payments_received', null=True, blank=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='payments')
+    ride = models.ForeignKey('rides.Ride', on_delete=models.CASCADE, related_name='payments', null=True, blank=True)
     
     payment_method = models.ForeignKey(PaymentMethod, on_delete=models.SET_NULL, null=True, blank=True)
     payment_type = models.CharField(max_length=20, choices=PAYMENT_TYPE_CHOICES)
@@ -71,20 +71,18 @@ class Payment(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     
     # External payment processor details
-    external_transaction_id = models.CharField(max_length=255, blank=True)
-    processor_response = models.JSONField(default=dict)
-    
-    # Fees and breakdown
-    platform_fee = models.DecimalField(max_digits=8, decimal_places=2, default=0.00)
-    processing_fee = models.DecimalField(max_digits=8, decimal_places=2, default=0.00)
-    driver_amount = models.DecimalField(max_digits=8, decimal_places=2, default=0.00)
+    transaction_id = models.CharField(max_length=255, blank=True)
+    gateway_response = models.JSONField(default=dict)
     
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     processed_at = models.DateTimeField(null=True, blank=True)
+    failed_at = models.DateTimeField(null=True, blank=True)
     
     failure_reason = models.TextField(blank=True)
-    notes = models.TextField(blank=True)
+    refund_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    refunded_at = models.DateTimeField(null=True, blank=True)
     
     class Meta:
         ordering = ['-created_at']

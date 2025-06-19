@@ -1,12 +1,14 @@
 # GitHub Push Commands for RideShare Application
 
 ## Prerequisites
+
 1. Create a new repository on GitHub (e.g., `rideshare-app`)
 2. Copy the repository URL (HTTPS or SSH)
 
 ## Quick Push Commands
 
 ### Option 1: HTTPS (Recommended for beginners)
+
 ```bash
 # Add all files to staging
 git add .
@@ -22,6 +24,7 @@ git push -u origin main
 ```
 
 ### Option 2: SSH (If you have SSH keys set up)
+
 ```bash
 # Add all files to staging
 git add .
@@ -39,6 +42,7 @@ git push -u origin main
 ## Step-by-Step Instructions
 
 ### 1. Create GitHub Repository
+
 1. Go to https://github.com
 2. Click "New repository"
 3. Name it `rideshare-app` (or your preferred name)
@@ -46,6 +50,7 @@ git push -u origin main
 5. Click "Create repository"
 
 ### 2. Prepare Local Repository
+
 ```bash
 # Navigate to project directory
 cd "e:\New folder (2)"
@@ -71,6 +76,7 @@ Features:
 ```
 
 ### 3. Connect to GitHub and Push
+
 ```bash
 # Add remote repository (use your GitHub URL)
 git remote add origin https://github.com/YOUR_USERNAME/rideshare-app.git
@@ -85,6 +91,7 @@ git push -u origin main
 ## What Will Be Pushed
 
 ### Backend (Django)
+
 - ✅ Complete Django project structure
 - ✅ Models for User, Ride, Driver, Payment
 - ✅ REST API endpoints
@@ -94,6 +101,7 @@ git push -u origin main
 - ✅ Database migrations
 
 ### Frontend (Flutter)
+
 - ✅ Complete Flutter project structure
 - ✅ Cross-platform mobile app
 - ✅ Android configuration with proper NDK version
@@ -102,6 +110,7 @@ git push -u origin main
 - ✅ Welcome screen UI
 
 ### Development Tools
+
 - ✅ VS Code tasks for both platforms
 - ✅ Comprehensive README documentation
 - ✅ Environment configuration files
@@ -109,6 +118,7 @@ git push -u origin main
 - ✅ Proper .gitignore for both platforms
 
 ## Repository Structure
+
 ```
 rideshare-app/
 ├── README.md
@@ -123,7 +133,7 @@ rideshare-app/
 │   ├── requirements.txt
 │   ├── rideshare/          # Main Django project
 │   ├── accounts/           # User management
-│   ├── rides/              # Ride management  
+│   ├── rides/              # Ride management
 │   ├── drivers/            # Driver features
 │   └── payments/           # Payment system
 └── frontend/               # Flutter Frontend
@@ -161,16 +171,19 @@ git push origin feature/new-feature
 ## Troubleshooting
 
 ### If you get authentication errors:
+
 1. Use Personal Access Token instead of password
 2. Generate token at: GitHub Settings > Developer settings > Personal access tokens
 3. Use token as password when prompted
 
 ### If you get permission errors:
+
 1. Check repository permissions
 2. Ensure you're the owner or have write access
 3. Verify remote URL is correct
 
 ## Security Notes
+
 - ✅ `.env` files are ignored (contain sensitive data)
 - ✅ Database files are ignored
 - ✅ Build files are ignored

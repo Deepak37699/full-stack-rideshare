@@ -54,8 +54,9 @@ class Ride(models.Model):
     """Main ride model"""
     
     STATUS_CHOICES = [
-        ('pending', 'Pending'),
+        ('requested', 'Requested'),
         ('accepted', 'Accepted'),
+        ('driver_arrived', 'Driver Arrived'),
         ('in_progress', 'In Progress'),
         ('completed', 'Completed'),
         ('cancelled', 'Cancelled'),
@@ -67,8 +68,7 @@ class Ride(models.Model):
         ('luxury', 'Luxury'),
         ('shared', 'Shared'),
     ]
-    
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+      id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     ride_request = models.OneToOneField(RideRequest, on_delete=models.CASCADE, related_name='ride', null=True, blank=True)
     rider = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='rides_as_rider')
     driver = models.ForeignKey('drivers.Driver', on_delete=models.SET_NULL, null=True, blank=True, related_name='rides_as_driver')
@@ -83,25 +83,26 @@ class Ride(models.Model):
     
     # Ride details
     ride_type = models.CharField(max_length=20, choices=RIDE_TYPE_CHOICES, default='standard')
-    fare = models.DecimalField(max_digits=10, decimal_places=2)
-    distance = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # in kilometers
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='requested')
+    estimated_fare = models.DecimalField(max_digits=8, decimal_places=2)
+    actual_fare = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    estimated_distance = models.DecimalField(max_digits=8, decimal_places=2)  # in kilometers
+    actual_distance = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    estimated_duration = models.PositiveIntegerField()  # in minutes
+    actual_duration = models.PositiveIntegerField(null=True, blank=True)
     
-    # Status and timing
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    # Timestamps
     requested_at = models.DateTimeField(auto_now_add=True)
     accepted_at = models.DateTimeField(null=True, blank=True)
+    driver_arrived_at = models.DateTimeField(null=True, blank=True)
     started_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
     cancelled_at = models.DateTimeField(null=True, blank=True)
     
     # Additional info
+    special_instructions = models.TextField(blank=True)
     cancellation_reason = models.TextField(blank=True)
-    driver_notes = models.TextField(blank=True)
-    rider_notes = models.TextField(blank=True)
-    rating_by_rider = models.PositiveIntegerField(null=True, blank=True)  # 1-5 rating
-    rating_by_driver = models.PositiveIntegerField(null=True, blank=True)  # 1-5 rating
     
-    # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -135,9 +136,10 @@ class Ride(models.Model):
         self.status = 'completed'
         self.completed_at = timezone.now()
         if actual_fare:
-            self.fare = actual_fare
+            self.actual_fare = actual_fare
         if actual_distance:
-            self.distance = actual_distance
+            self.actual_distance = actual_distance
+        self.actual_duration = self.duration_minutes
         self.save()
     
     def cancel_ride(self, reason=""):
@@ -146,6 +148,21 @@ class Ride(models.Model):
         self.cancelled_at = timezone.now()
         self.cancellation_reason = reason
         self.save()
+
+
+class RideRating(models.Model):
+    """Rating system for rides"""
+    
+    ride = models.OneToOneField(Ride, on_delete=models.CASCADE, related_name='rating')
+    rider_rating = models.PositiveIntegerField(null=True, blank=True)  # 1-5 rating by rider
+    driver_rating = models.PositiveIntegerField(null=True, blank=True)  # 1-5 rating by driver
+    rider_comment = models.TextField(blank=True)
+    driver_comment = models.TextField(blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"Rating for Ride {self.ride.id}"
 
 
 class RideLocation(models.Model):
