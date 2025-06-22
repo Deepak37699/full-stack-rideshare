@@ -22,8 +22,7 @@ class PaymentMethod(models.Model):
     cardholder_name = models.CharField(max_length=100, blank=True)
     expiry_month = models.PositiveIntegerField(null=True, blank=True)
     expiry_year = models.PositiveIntegerField(null=True, blank=True)
-    
-    # External wallet details
+      # External wallet details
     external_id = models.CharField(max_length=255, blank=True)
     
     is_active = models.BooleanField(default=True)
@@ -36,7 +35,8 @@ class PaymentMethod(models.Model):
     def __str__(self):
         if self.method_type == 'card' and self.card_number:
             return f"Card ending in {self.card_number[-4:]}"
-        return f"{self.get_method_type_display()}"
+        # Django's get_FOO_display() method for choices field
+        return getattr(self, 'get_method_type_display', lambda: self.method_type)()
 
 
 class Payment(models.Model):
@@ -131,6 +131,7 @@ class Refund(models.Model):
         ('other', 'Other'),
     ]
     
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     payment = models.OneToOneField(Payment, on_delete=models.CASCADE, related_name='refund')
     requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     

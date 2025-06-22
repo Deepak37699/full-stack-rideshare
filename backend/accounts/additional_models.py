@@ -103,8 +103,9 @@ class PromoCode(models.Model):
         return self.is_active and self.valid_from <= now <= self.valid_until
     
     @property
-    def usage_count(self):
-        return self.promo_uses.count()
+    def usage_count(self) -> int:
+        # Access the reverse foreign key relationship
+        return getattr(self, 'promo_uses').count()
 
 
 class PromoCodeUse(models.Model):
