@@ -1,103 +1,23 @@
-# GitHub Push Commands & Contribution Tracking
+# GitHub Push Commands for RideShare Application
 
-## ✅ ISSUE RESOLVED: GitHub Contribution Tracking
+## Prerequisites
 
-The issue was that your git email was set to `deepak@example.com` instead of your actual GitHub email `deepak.yadav37699k@gmail.com`.
+1. Create a new repository on GitHub (e.g., `rideshare-app`)
+2. Copy the repository URL (HTTPS or SSH)
 
-### What was fixed:
-1. **Updated git email configuration**:
-   ```bash
-   git config --global user.email "deepak.yadav37699k@gmail.com"
-   git config user.email "deepak.yadav37699k@gmail.com"  # for this repo
-   ```
+## Quick Push Commands
 
-2. **Made test commits with correct email**:
-   - Latest commit now uses `deepak.yadav37699k@gmail.com`
-   - This should show up in your GitHub contribution graph
+### Option 1: HTTPS (Recommended for beginners)
 
-## 🔍 How to Verify Contributions
-
-### 1. Check Your GitHub Profile
-Visit: https://github.com/Deepak37699
-- Look for new green squares in your contribution graph
-- Today's date should show activity
-
-### 2. Check Your Repository
-Visit: https://github.com/Deepak37699/full-stack-rideshare
-- Look for green checkmarks next to commits
-- GitHub Actions should be running automatically
-
-### 3. Verify Email Configuration
 ```bash
-# Check current email
-git config user.email
-
-# Should show: deepak.yadav37699k@gmail.com
-```
-
-## 📋 Commands for Future Development
-
-### Making Changes and Pushing
-```bash
-# Make your changes, then:
+# Add all files to staging
 git add .
-git commit -m "Your commit message"
-git push origin main
 
-# Or use VS Code tasks:
-# Ctrl+Shift+P -> "Tasks: Run Task" -> "Setup: Install All Dependencies"
-```
+# Commit with descriptive message
+git commit -m "Initial commit: Complete RideShare application with Django backend and Flutter frontend"
 
-### Running the Application
-```bash
-# Backend
-cd backend
-uv run python manage.py runserver
-
-# Frontend (new terminal)
-cd frontend/rideshare_app
-flutter run
-```
-
-### Testing
-```bash
-# Backend tests
-cd backend
-uv run python -m pytest test_complete_api.py -v
-
-# Flutter tests
-cd frontend/rideshare_app
-flutter test
-```
-
-## 🎯 What to Expect Now
-
-1. **GitHub Contributions**: New commits should appear in your contribution graph within a few minutes
-2. **Green Checkmarks**: GitHub Actions will run and show green checkmarks if tests pass
-3. **Repository Activity**: Your repository activity feed will show the new commits
-
-## 🚨 If Contributions Still Don't Show
-
-If you still don't see contributions after 24 hours, check:
-
-1. **Email Verification**: Make sure `deepak.yadav37699k@gmail.com` is added and verified in your GitHub settings:
-   - Go to GitHub Settings → Emails
-   - Add the email if it's not there
-   - Verify it if it's unverified
-
-2. **Repository Visibility**: Make sure your repository is public (which it is)
-
-3. **Commit Date**: GitHub only counts contributions for commits made within the last year
-
-## 📊 Current Status
-
-✅ Email configuration fixed
-✅ Test commits pushed with correct email
-✅ GitHub Actions workflow active
-✅ Repository is public
-✅ All code is committed and pushed
-
-**Next commits you make will show up in your GitHub contribution graph!**
+# Add GitHub remote (replace YOUR_USERNAME and REPO_NAME)
+git remote add origin https://github.com/YOUR_USERNAME/rideshare-app.git
 
 # Push to GitHub
 git push -u origin main

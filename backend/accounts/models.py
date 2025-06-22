@@ -4,6 +4,15 @@ from django.core.validators import RegexValidator
 from django.utils import timezone
 import uuid
 
+# Import additional models to ensure Django recognizes them
+from .additional_models import (
+    Review, 
+    PromoCode, 
+    PromoCodeUse, 
+    EmergencyContact, 
+    SOS
+)
+
 class User(AbstractUser):
     """Custom User model for the ride sharing application"""
     

@@ -7,10 +7,11 @@ from django.utils import timezone
 from datetime import timedelta
 import json
 
-from .models import Ride, RideRequest
+from .models import Ride, RideRequest, FavoriteLocation, RideTemplate, ScheduledRide, SmartSuggestion
 from .serializers import (
     RideSerializer, RideRequestSerializer, RideUpdateSerializer,
-    RideRatingSerializer, RideLocationUpdateSerializer
+    RideRatingSerializer, RideLocationUpdateSerializer,
+    FavoriteLocationSerializer, RideTemplateSerializer, ScheduledRideSerializer, SmartSuggestionSerializer
 )
 
 class RideRequestViewSet(viewsets.ModelViewSet):
@@ -383,3 +384,201 @@ class RideViewSet(viewsets.ModelViewSet):
             )
         
         return Response(stats)
+
+# Smart Ride Features ViewSets
+
+class FavoriteLocationViewSet(viewsets.ModelViewSet):
+    serializer_class = FavoriteLocationSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        return FavoriteLocation.objects.filter(
+            user=self.request.user
+        ).order_by('location_type', 'name')
+    
+    @action(detail=False, methods=['get'])
+    def by_type(self, request):
+        """Get favorite locations grouped by type"""
+        locations = self.get_queryset()
+        grouped = {}
+        for location in locations:
+            loc_type = location.location_type
+            if loc_type not in grouped:
+                grouped[loc_type] = []
+            grouped[loc_type].append(FavoriteLocationSerializer(location).data)
+        return Response(grouped)
+
+
+class RideTemplateViewSet(viewsets.ModelViewSet):
+    serializer_class = RideTemplateSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        return RideTemplate.objects.filter(
+            user=self.request.user,
+            is_active=True
+        ).order_by('-use_count', 'name')
+    
+    @action(detail=True, methods=['post'])
+    def use_template(self, request, pk=None):
+        """Create a ride request from a template"""
+        template = self.get_object()
+        
+        # Create ride request data from template
+        ride_data = {
+            'pickup_address': template.pickup_address,
+            'pickup_latitude': template.pickup_latitude,
+            'pickup_longitude': template.pickup_longitude,
+            'destination_address': template.destination_address,
+            'destination_latitude': template.destination_latitude,
+            'destination_longitude': template.destination_longitude,
+            'ride_type': template.preferred_ride_type,
+            'special_instructions': template.special_instructions,
+        }
+        
+        # Create ride request
+        serializer = RideRequestSerializer(data=ride_data, context={'request': request})
+        if serializer.is_valid():
+            ride_request = serializer.save()
+            
+            # Update template usage count
+            template.use_count += 1
+            template.save()
+            
+            return Response(RideRequestSerializer(ride_request).data, status=status.HTTP_201_CREATED)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ScheduledRideViewSet(viewsets.ModelViewSet):
+    serializer_class = ScheduledRideSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        return ScheduledRide.objects.filter(
+            user=self.request.user
+        ).order_by('scheduled_datetime')
+    
+    @action(detail=False, methods=['get'])
+    def upcoming(self, request):
+        """Get upcoming scheduled rides"""
+        upcoming_rides = self.get_queryset().filter(
+            scheduled_datetime__gt=timezone.now(),
+            status__in=['scheduled', 'confirmed']
+        )
+        serializer = ScheduledRideSerializer(upcoming_rides, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def due_for_booking(self, request):
+        """Get rides that are due for booking now"""
+        due_rides = []
+        for ride in self.get_queryset().filter(status='scheduled'):
+            if ride.is_due_for_booking():
+                due_rides.append(ride)
+        
+        serializer = ScheduledRideSerializer(due_rides, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def book_now(self, request, pk=None):
+        """Immediately book a scheduled ride"""
+        scheduled_ride = self.get_object()
+        
+        if scheduled_ride.status != 'scheduled':
+            return Response(
+                {'error': 'Ride is not in scheduled status'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Create ride request from scheduled ride
+        ride_data = {
+            'pickup_address': scheduled_ride.pickup_address,
+            'pickup_latitude': scheduled_ride.pickup_latitude,
+            'pickup_longitude': scheduled_ride.pickup_longitude,
+            'destination_address': scheduled_ride.destination_address,
+            'destination_latitude': scheduled_ride.destination_latitude,
+            'destination_longitude': scheduled_ride.destination_longitude,
+            'ride_type': scheduled_ride.ride_type,
+            'special_instructions': scheduled_ride.special_instructions,
+        }
+        
+        serializer = RideRequestSerializer(data=ride_data, context={'request': request})
+        if serializer.is_valid():
+            ride_request = serializer.save()
+            
+            # Update scheduled ride status
+            scheduled_ride.status = 'confirmed'
+            scheduled_ride.save()
+            
+            return Response(RideRequestSerializer(ride_request).data, status=status.HTTP_201_CREATED)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class SmartSuggestionViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = SmartSuggestionSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        return SmartSuggestion.objects.filter(
+            user=self.request.user,
+            is_active=True,
+            expires_at__gt=timezone.now()
+        ).order_by('-confidence_score', '-created_at')
+    
+    @action(detail=False, methods=['get'])
+    def by_type(self, request):
+        """Get suggestions grouped by type"""
+        suggestion_type = request.query_params.get('type', None)
+        suggestions = self.get_queryset()
+        
+        if suggestion_type:
+            suggestions = suggestions.filter(suggestion_type=suggestion_type)
+        
+        grouped = {}
+        for suggestion in suggestions:
+            stype = suggestion.suggestion_type
+            if stype not in grouped:
+                grouped[stype] = []
+            grouped[stype].append(SmartSuggestionSerializer(suggestion).data)        
+        return Response(grouped)
+    
+    @action(detail=True, methods=['post'])
+    def dismiss(self, request, pk=None):
+        """Dismiss a suggestion"""
+        suggestion = self.get_object()
+        suggestion.is_active = False
+        suggestion.save()
+        return Response({'status': 'dismissed'})
+    
+    @action(detail=True, methods=['post'])
+    def use(self, request, pk=None):
+        """Mark a suggestion as used and optionally create a ride request"""
+        suggestion = self.get_object()
+        suggestion.was_used = True
+        suggestion.save()
+        
+        # If suggestion has location data, create a ride request
+        if (suggestion.suggested_pickup_lat and suggestion.suggested_pickup_lng and
+            suggestion.suggested_destination_lat and suggestion.suggested_destination_lng):
+            
+            ride_data = {
+                'pickup_address': suggestion.suggested_pickup_address or 'Suggested Location',
+                'pickup_latitude': suggestion.suggested_pickup_lat,
+                'pickup_longitude': suggestion.suggested_pickup_lng,
+                'destination_address': suggestion.suggested_destination_address or 'Suggested Destination',
+                'destination_latitude': suggestion.suggested_destination_lat,
+                'destination_longitude': suggestion.suggested_destination_lng,
+                'ride_type': 'standard',
+            }
+            
+            serializer = RideRequestSerializer(data=ride_data, context={'request': request})
+            if serializer.is_valid():
+                ride_request = serializer.save()
+                return Response({
+                    'status': 'used',
+                    'ride_request': RideRequestSerializer(ride_request).data
+                }, status=status.HTTP_201_CREATED)
+        
+        return Response({'status': 'used'})

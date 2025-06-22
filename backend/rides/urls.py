@@ -9,6 +9,12 @@ router = DefaultRouter()
 router.register(r'rides', views.RideViewSet)
 router.register(r'requests', views.RideRequestViewSet)
 
+# Smart Ride Features
+router.register(r'favorite-locations', views.FavoriteLocationViewSet, basename='favoritelocation')
+router.register(r'ride-templates', views.RideTemplateViewSet, basename='ridetemplate')
+router.register(r'scheduled-rides', views.ScheduledRideViewSet, basename='scheduledride')
+router.register(r'smart-suggestions', views.SmartSuggestionViewSet, basename='smartsuggestion')
+
 urlpatterns = [
     path('', include(router.urls)),
 

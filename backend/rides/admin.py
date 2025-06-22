@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils import timezone
-from .models import Ride, RideRequest, RideLocation
+from .models import Ride, RideRequest, RideLocation, FavoriteLocation, RideTemplate, ScheduledRide, SmartSuggestion
 
 @admin.register(RideRequest)
 class RideRequestAdmin(admin.ModelAdmin):
@@ -158,6 +158,38 @@ class RideLocationAdmin(admin.ModelAdmin):
             return format_html('<a href="{}" target="_blank">View on Google Maps</a>', url)
         return '-'
     view_on_map.short_description = 'Map View'
+
+
+# Smart Ride Features Admin
+from .models import FavoriteLocation, RideTemplate, ScheduledRide, SmartSuggestion
+
+@admin.register(FavoriteLocation)
+class FavoriteLocationAdmin(admin.ModelAdmin):
+    list_display = ('name', 'user', 'location_type', 'address', 'use_count', 'created_at')
+    list_filter = ('location_type', 'created_at')
+    search_fields = ('name', 'address', 'user__username')
+    readonly_fields = ('use_count', 'created_at', 'updated_at')
+
+@admin.register(RideTemplate)  
+class RideTemplateAdmin(admin.ModelAdmin):
+    list_display = ('name', 'user', 'preferred_ride_type', 'use_count', 'is_active', 'created_at')
+    list_filter = ('preferred_ride_type', 'is_active', 'created_at')
+    search_fields = ('name', 'user__username', 'pickup_address', 'destination_address')
+    readonly_fields = ('use_count', 'last_used', 'created_at')
+
+@admin.register(ScheduledRide)
+class ScheduledRideAdmin(admin.ModelAdmin):
+    list_display = ('user', 'scheduled_datetime', 'status', 'recurring_pattern', 'ride_type', 'created_at')
+    list_filter = ('status', 'recurring_pattern', 'ride_type', 'scheduled_datetime')
+    search_fields = ('user__username', 'pickup_address', 'destination_address')
+    readonly_fields = ('created_at', 'updated_at')
+
+@admin.register(SmartSuggestion)
+class SmartSuggestionAdmin(admin.ModelAdmin):
+    list_display = ('user', 'suggestion_type', 'title', 'confidence_score', 'is_active', 'was_used', 'created_at')
+    list_filter = ('suggestion_type', 'is_active', 'was_used', 'created_at')
+    search_fields = ('user__username', 'title', 'description')
+    readonly_fields = ('confidence_score', 'created_at')
 
 
 # Custom admin views for analytics

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Ride, RideRequest, RideLocation
+from .models import Ride, RideRequest, RideLocation, FavoriteLocation, RideTemplate, ScheduledRide, SmartSuggestion
 from accounts.serializers import UserSerializer
 from drivers.serializers import DriverSerializer
 
@@ -191,4 +191,84 @@ class DetailedRideSerializer(serializers.ModelSerializer):
             'driver_notes', 'rider_notes', 'rating_by_rider',
             'rating_by_driver', 'created_at', 'updated_at',
             'locations', 'duration_minutes'
+        )
+
+# Smart Ride Features Serializers
+
+class FavoriteLocationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FavoriteLocation
+        fields = (
+            'id', 'user', 'name', 'address', 'latitude', 'longitude',
+            'location_type', 'use_count', 'created_at', 'updated_at'
+        )
+        read_only_fields = ('id', 'user', 'use_count', 'created_at', 'updated_at')
+
+    def create(self, validated_data):
+        validated_data['user'] = self.context['request'].user
+        return super().create(validated_data)
+
+
+class RideTemplateSerializer(serializers.ModelSerializer):
+    use_count = serializers.ReadOnlyField()
+    
+    class Meta:
+        model = RideTemplate
+        fields = (
+            'id', 'user', 'name', 'pickup_name', 'pickup_address', 'pickup_latitude', 
+            'pickup_longitude', 'destination_name', 'destination_address', 'destination_latitude',
+            'destination_longitude', 'preferred_ride_type', 'special_instructions',
+            'is_active', 'use_count', 'last_used', 'created_at'
+        )
+        read_only_fields = ('id', 'user', 'use_count', 'last_used', 'created_at')
+
+    def create(self, validated_data):
+        validated_data['user'] = self.context['request'].user
+        return super().create(validated_data)
+
+
+class ScheduledRideSerializer(serializers.ModelSerializer):
+    ride_template_name = serializers.CharField(source='ride_template.name', read_only=True)
+    is_due_for_booking = serializers.ReadOnlyField()
+    is_expired = serializers.ReadOnlyField()
+    
+    class Meta:
+        model = ScheduledRide
+        fields = (
+            'id', 'user', 'ride_template', 'ride_template_name', 'pickup_address',
+            'pickup_latitude', 'pickup_longitude', 'destination_address',
+            'destination_latitude', 'destination_longitude', 'scheduled_datetime',
+            'recurring_pattern', 'recurring_end_date', 'ride_type', 'estimated_fare',
+            'special_instructions', 'advance_booking_time', 'auto_confirm',
+            'max_wait_time', 'status', 'actual_ride', 'notification_sent',
+            'reminder_sent', 'is_due_for_booking', 'is_expired', 'created_at', 'updated_at'
+        )
+        read_only_fields = (
+            'id', 'user', 'actual_ride', 'notification_sent', 'reminder_sent',
+            'is_due_for_booking', 'is_expired', 'created_at', 'updated_at'
+        )
+
+    def create(self, validated_data):
+        validated_data['user'] = self.context['request'].user
+        return super().create(validated_data)
+
+    def validate_scheduled_datetime(self, value):
+        from django.utils import timezone
+        if value <= timezone.now():
+            raise serializers.ValidationError("Scheduled datetime must be in the future.")
+        return value
+
+
+class SmartSuggestionSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = SmartSuggestion
+        fields = (
+            'id', 'user', 'suggestion_type', 'title', 'description',
+            'suggested_pickup_lat', 'suggested_pickup_lng', 'suggested_pickup_address',
+            'suggested_destination_lat', 'suggested_destination_lng', 'suggested_destination_address',
+            'suggested_time', 'confidence_score', 'is_active', 'was_used', 'expires_at', 'created_at'
+        )
+        read_only_fields = (
+            'id', 'user', 'confidence_score', 'created_at'
         )

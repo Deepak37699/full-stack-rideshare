@@ -16,8 +16,7 @@ class Review(models.Model):
     
     # Review categories for drivers
     cleanliness = models.PositiveIntegerField(null=True, blank=True)  # 1-5
-    communication = models.PositiveIntegerField(null=True, blank=True)  # 1-5
-    driving_quality = models.PositiveIntegerField(null=True, blank=True)  # 1-5
+    communication = models.PositiveIntegerField(null=True, blank=True)  # 1-5    driving_quality = models.PositiveIntegerField(null=True, blank=True)  # 1-5
     
     created_at = models.DateTimeField(auto_now_add=True)
     
@@ -27,42 +26,6 @@ class Review(models.Model):
     
     def __str__(self):
         return f"Review by {self.reviewer.username} for {self.reviewee.username} - {self.rating} stars"
-
-
-class Notification(models.Model):
-    """Model for push notifications"""
-    
-    NOTIFICATION_TYPES = [
-        ('ride_request', 'Ride Request'),
-        ('ride_accepted', 'Ride Accepted'),
-        ('ride_started', 'Ride Started'),
-        ('ride_completed', 'Ride Completed'),
-        ('ride_cancelled', 'Ride Cancelled'),
-        ('driver_arrived', 'Driver Arrived'),
-        ('payment_completed', 'Payment Completed'),
-        ('review_received', 'Review Received'),
-        ('promo_available', 'Promo Available'),
-        ('system_update', 'System Update'),
-    ]
-    
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notifications')
-    
-    title = models.CharField(max_length=100)
-    message = models.TextField()
-    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES)
-    
-    # Optional related objects
-    ride = models.ForeignKey('rides.Ride', on_delete=models.CASCADE, null=True, blank=True)
-    
-    is_read = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    
-    class Meta:
-        ordering = ['-created_at']
-    
-    def __str__(self):
-        return f"Notification for {self.user.username}: {self.title}"
 
 
 class PromoCode(models.Model):

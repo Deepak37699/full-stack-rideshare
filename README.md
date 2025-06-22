@@ -5,12 +5,14 @@ A complete InDrive-style ride sharing application built with Django backend and 
 ## 🚀 Features
 
 ### 🔐 Authentication & User Management
+
 - User registration and login with OTP verification
 - Driver registration with document verification
 - Profile management with photo upload
 - Multi-language support (English, Nepali)
 
 ### 🚗 Ride Management
+
 - Real-time ride booking and matching
 - Live GPS tracking during rides
 - Ride history and receipts
@@ -18,6 +20,7 @@ A complete InDrive-style ride sharing application built with Django backend and 
 - Dynamic pricing based on distance and demand
 
 ### 💰 Payment System
+
 - Multiple payment methods (Cash, Digital Wallets)
 - Secure payment processing
 - Automatic fare calculation
@@ -25,12 +28,14 @@ A complete InDrive-style ride sharing application built with Django backend and 
 - Driver earnings management
 
 ### 📱 Real-time Features
+
 - WebSocket-based live tracking
 - Push notifications
 - In-app messaging between riders and drivers
 - SOS emergency features
 
 ### 📊 Analytics & Admin
+
 - Comprehensive admin dashboard
 - Driver performance analytics
 - Revenue tracking and reporting
@@ -39,6 +44,7 @@ A complete InDrive-style ride sharing application built with Django backend and 
 ## 🛠 Tech Stack
 
 ### Backend
+
 - **Django 5.2+** with Django REST Framework
 - **WebSocket** support via Django Channels
 - **JWT Authentication** with SimpleJWT
@@ -47,6 +53,7 @@ A complete InDrive-style ride sharing application built with Django backend and 
 - **PostgreSQL** database
 
 ### Frontend
+
 - **Flutter** cross-platform mobile app
 - **Real-time** location services
 - **Maps** integration
@@ -62,12 +69,14 @@ A complete InDrive-style ride sharing application built with Django backend and 
 ## 🚀 Quick Start
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/Deepak37699/full-stack-rideshare.git
    cd full-stack-rideshare
    ```
 
 2. **Backend Setup**
+
    ```bash
    cd backend
    uv sync
@@ -91,12 +100,14 @@ A complete InDrive-style ride sharing application built with Django backend and 
 ## 🧪 Testing
 
 ### Backend Tests
+
 ```bash
 cd backend
 uv run python -m pytest test_complete_api.py -v
 ```
 
 ### Frontend Tests
+
 ```bash
 cd frontend/rideshare_app
 flutter test
@@ -105,6 +116,7 @@ flutter test
 ## 🔧 Development Tasks
 
 Available VS Code tasks:
+
 - `Django: Run Development Server`
 - `Flutter: Run App`
 - `Setup: Install All Dependencies`
@@ -114,12 +126,14 @@ Available VS Code tasks:
 ## 📦 Deployment
 
 ### Backend Deployment
+
 1. Set environment variables
 2. Configure PostgreSQL database
 3. Set up Redis server
 4. Deploy to your preferred platform (Heroku, DigitalOcean, AWS)
 
 ### Frontend Deployment
+
 1. Build for Android: `flutter build apk`
 2. Build for iOS: `flutter build ios`
 3. Deploy to app stores
