@@ -76,34 +76,7 @@ class UserProfile(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
-    def __str__(self):
-        return f"Profile of {self.user.username}"
-
-
-class Review(models.Model):
-    """Model for ride reviews"""
-    
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    ride = models.ForeignKey('rides.Ride', on_delete=models.CASCADE, related_name='reviews')
-    reviewer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews_given')
-    reviewee = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews_received')
-    
-    rating = models.PositiveIntegerField()  # 1-5 stars
-    comment = models.TextField(blank=True)
-    
-    # Review categories for drivers
-    cleanliness = models.PositiveIntegerField(null=True, blank=True)  # 1-5
-    communication = models.PositiveIntegerField(null=True, blank=True)  # 1-5
-    driving_quality = models.PositiveIntegerField(null=True, blank=True)  # 1-5
-    
-    created_at = models.DateTimeField(auto_now_add=True)
-    
-    class Meta:
-        unique_together = ('ride', 'reviewer')
-        ordering = ['-created_at']
-    
-    def __str__(self):
-        return f"Review by {self.reviewer.username} for {self.reviewee.username} - {self.rating} stars"
+    def __str__(self):        return f"Profile of {self.user.username}"
 
 
 class Notification(models.Model):

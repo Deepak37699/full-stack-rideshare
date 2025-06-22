@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Ride, RideRequest
+from .models import Ride, RideRequest, RideLocation
 from accounts.serializers import UserSerializer
 from drivers.serializers import DriverSerializer
 
@@ -113,3 +113,82 @@ class RideLocationUpdateSerializer(serializers.Serializer):
             return value
         except Ride.DoesNotExist:
             raise serializers.ValidationError("Ride does not exist")
+
+# Enhanced serializers for new API endpoints
+
+class FareEstimateSerializer(serializers.Serializer):
+    """Serializer for fare estimation requests"""
+    pickup_latitude = serializers.DecimalField(max_digits=9, decimal_places=6)
+    pickup_longitude = serializers.DecimalField(max_digits=9, decimal_places=6)
+    destination_latitude = serializers.DecimalField(max_digits=9, decimal_places=6)
+    destination_longitude = serializers.DecimalField(max_digits=9, decimal_places=6)
+    ride_type = serializers.ChoiceField(
+        choices=['standard', 'premium', 'luxury', 'shared'],
+        default='standard'
+    )
+
+class NearbyDriverSerializer(serializers.Serializer):
+    """Serializer for nearby driver search"""
+    latitude = serializers.DecimalField(max_digits=9, decimal_places=6)
+    longitude = serializers.DecimalField(max_digits=9, decimal_places=6)
+    radius_km = serializers.IntegerField(default=5, min_value=1, max_value=20)
+
+class RideMatchingSerializer(serializers.Serializer):
+    """Serializer for ride matching requests"""
+    pickup_latitude = serializers.DecimalField(max_digits=9, decimal_places=6)
+    pickup_longitude = serializers.DecimalField(max_digits=9, decimal_places=6)
+    pickup_address = serializers.CharField(max_length=500)
+    destination_latitude = serializers.DecimalField(max_digits=9, decimal_places=6)
+    destination_longitude = serializers.DecimalField(max_digits=9, decimal_places=6)
+    destination_address = serializers.CharField(max_length=500)
+    ride_type = serializers.ChoiceField(
+        choices=['standard', 'premium', 'luxury', 'shared'],
+        default='standard'
+    )
+    special_instructions = serializers.CharField(max_length=1000, required=False, allow_blank=True)
+
+class GeocodeSerializer(serializers.Serializer):
+    """Serializer for geocoding requests"""
+    operation = serializers.ChoiceField(choices=['geocode', 'reverse_geocode'])
+    address = serializers.CharField(max_length=500, required=False)
+    latitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False)
+    longitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False)
+
+class EmergencyAlertSerializer(serializers.Serializer):
+    """Serializer for emergency alerts"""
+    ride_id = serializers.UUIDField()
+    alert_type = serializers.ChoiceField(
+        choices=['general', 'accident', 'harassment', 'vehicle_breakdown', 'medical'],
+        default='general'
+    )
+    message = serializers.CharField(max_length=1000, required=False, allow_blank=True)
+    latitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False)
+    longitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False)
+
+class RideLocationSerializer(serializers.ModelSerializer):
+    """Serializer for real-time ride location tracking"""
+    
+    class Meta:
+        model = RideLocation
+        fields = ('id', 'ride', 'latitude', 'longitude', 'timestamp', 'speed')
+        read_only_fields = ('id', 'timestamp')
+
+class DetailedRideSerializer(serializers.ModelSerializer):
+    """Enhanced ride serializer with additional details"""
+    rider = UserSerializer(read_only=True)
+    driver = DriverSerializer(read_only=True)
+    locations = RideLocationSerializer(many=True, read_only=True)
+    duration_minutes = serializers.ReadOnlyField()
+    
+    class Meta:
+        model = Ride
+        fields = (
+            'id', 'rider', 'driver', 'pickup_latitude', 'pickup_longitude',
+            'pickup_address', 'destination_latitude', 'destination_longitude',
+            'destination_address', 'ride_type', 'fare', 'distance',
+            'status', 'requested_at', 'accepted_at', 'started_at',
+            'completed_at', 'cancelled_at', 'cancellation_reason',
+            'driver_notes', 'rider_notes', 'rating_by_rider',
+            'rating_by_driver', 'created_at', 'updated_at',
+            'locations', 'duration_minutes'
+        )

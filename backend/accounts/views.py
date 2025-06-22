@@ -72,10 +72,10 @@ class RegisterView(APIView):
             return Response({
                 'message': 'User registered successfully',
                 'user': UserSerializer(user).data,
-                'tokens': {
-                    'refresh': str(refresh),
-                    'access': str(refresh.access_token),
-                }
+                'access': str(refresh.access_token),
+                'refresh': str(refresh),
+                'phone_number': user.phone_number,
+                'user_type': user.user_type,
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -93,10 +93,10 @@ class LoginView(APIView):
             return Response({
                 'message': 'Login successful',
                 'user': UserSerializer(user).data,
-                'tokens': {
-                    'refresh': str(refresh),
-                    'access': str(refresh.access_token),
-                }
+                'access': str(refresh.access_token),
+                'refresh': str(refresh),
+                'phone_number': user.phone_number,
+                'user_type': user.user_type,
             })
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -112,18 +112,30 @@ class LogoutView(APIView):
             return Response({'message': 'Successfully logged out'})
         except Exception as e:
             return Response({'error': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
-    
-    def post(self, request):
-        return Response({"message": "Registration endpoint"}, status=status.HTTP_200_OK)
 
 class CurrentUserView(APIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
-        return Response({"message": "Current user endpoint"}, status=status.HTTP_200_OK)
+        """Get current user's profile"""
+        user_data = UserSerializer(request.user).data
+        
+        # Add profile data if exists
+        try:
+            profile = UserProfile.objects.get(user=request.user)
+            user_data['profile'] = UserProfileSerializer(profile).data
+        except UserProfile.DoesNotExist:
+            user_data['profile'] = None
+            
+        return Response(user_data)
 
 class ChangePasswordView(APIView):
     permission_classes = [IsAuthenticated]
     
     def post(self, request):
-        return Response({"message": "Change password endpoint"}, status=status.HTTP_200_OK)
+        serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            request.user.set_password(serializer.validated_data['new_password'])
+            request.user.save()
+            return Response({'message': 'Password changed successfully'})
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

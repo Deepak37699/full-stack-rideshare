@@ -2,9 +2,11 @@ from rest_framework import viewsets, status, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from django.db.models import Q
+from django.db.models import Q, Avg, Count
 from django.utils import timezone
 from datetime import timedelta
+import json
+
 from .models import Ride, RideRequest
 from .serializers import (
     RideSerializer, RideRequestSerializer, RideUpdateSerializer,
@@ -192,87 +194,192 @@ class RideViewSet(viewsets.ModelViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=True, methods=['post'])
-    def rate(self, request, pk=None):
-        """Rate a completed ride"""
-        ride = self.get_object()
-        serializer = RideRatingSerializer(data=request.data, context={'request': request})
-        
-        if serializer.is_valid():
-            user = request.user
-            rating = serializer.validated_data['rating']
-            review = serializer.validated_data.get('review', '')
-            
-            if user.user_type == 'rider':
-                ride.rating_by_rider = rating
-                ride.rider_notes = review
-            elif user.user_type == 'driver':
-                ride.rating_by_driver = rating
-                ride.driver_notes = review
-            
-            ride.save()
-            return Response({'message': 'Rating submitted successfully'})
-        
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-    @action(detail=True, methods=['post'])
     def update_location(self, request, pk=None):
-        """Update ride location (driver only)"""
-        serializer = RideLocationUpdateSerializer(data=request.data, context={'request': request})
+        """Update real-time location during ride"""
+        ride = self.get_object()
         
-        if serializer.is_valid():
-            ride = self.get_object()
-            user = request.user
-            
-            # Update driver's location
-            driver = user.driver_profile
-            driver.current_latitude = serializer.validated_data['current_latitude']
-            driver.current_longitude = serializer.validated_data['current_longitude']
-            driver.last_location_update = timezone.now()
-            driver.save()
-            
-            return Response({'message': 'Location updated successfully'})
+        if request.user.user_type != 'driver' or ride.driver.user != request.user:
+            return Response(
+                {'error': 'Only the assigned driver can update location'},
+                status=status.HTTP_403_FORBIDDEN
+            )
         
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-    @action(detail=False, methods=['get'])
-    def history(self, request):
-        """Get ride history for the user"""
-        user = request.user
+        if ride.status not in ['accepted', 'in_progress']:
+            return Response(
+                {'error': 'Cannot update location for this ride status'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
-        if user.user_type == 'rider':
-            rides = Ride.objects.filter(rider=user).order_by('-created_at')
-        elif user.user_type == 'driver':
-            rides = Ride.objects.filter(driver__user=user).order_by('-created_at')
+        latitude = request.data.get('latitude')
+        longitude = request.data.get('longitude')
+        speed = request.data.get('speed')
+        
+        if not latitude or not longitude:
+            return Response(
+                {'error': 'Latitude and longitude are required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Create location record
+        from .models import RideLocation
+        location = RideLocation.objects.create(
+            ride=ride,
+            latitude=latitude,
+            longitude=longitude,
+            speed=speed
+        )
+          # Send real-time update to riders (would use WebSocket in production)
+        print(f"Location update for ride {ride.id}: {latitude}, {longitude}")
+        
+        return Response({'status': 'Location updated successfully'})
+
+    @action(detail=True, methods=['post'])
+    def rate(self, request, pk=None):
+        """Rate the ride (rider or driver)"""
+        ride = self.get_object()
+        rating = request.data.get('rating')
+        comment = request.data.get('comment', '')
+        
+        if not rating or not (1 <= int(rating) <= 5):
+            return Response(
+                {'error': 'Rating must be between 1 and 5'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if ride.status != 'completed':
+            return Response(
+                {'error': 'Can only rate completed rides'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if request.user == ride.rider:
+            if ride.rating_by_rider:
+                return Response(
+                    {'error': 'You have already rated this ride'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            ride.rating_by_rider = rating
+            ride.rider_notes = comment
+        elif request.user == ride.driver.user:
+            if ride.rating_by_driver:
+                return Response(
+                    {'error': 'You have already rated this ride'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            ride.rating_by_driver = rating
+            ride.driver_notes = comment
         else:
-            rides = Ride.objects.none()
+            return Response(
+                {'error': 'You are not authorized to rate this ride'},
+                status=status.HTTP_403_FORBIDDEN
+            )
         
-        page = self.paginate_queryset(rides)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-        
-        serializer = self.get_serializer(rides, many=True)
-        return Response(serializer.data)
-    
+        ride.save()
+        return Response(RideSerializer(ride).data)
+
     @action(detail=False, methods=['get'])
     def active(self, request):
         """Get active ride for the user"""
         user = request.user
         
         if user.user_type == 'rider':
-            ride = Ride.objects.filter(
+            active_ride = Ride.objects.filter(
                 rider=user,
                 status__in=['accepted', 'in_progress']
             ).first()
         elif user.user_type == 'driver':
-            ride = Ride.objects.filter(
+            active_ride = Ride.objects.filter(
                 driver__user=user,
                 status__in=['accepted', 'in_progress']
             ).first()
         else:
-            ride = None
+            return Response(
+                {'error': 'Invalid user type'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
-        if ride:
-            return Response(RideSerializer(ride).data)
+        if active_ride:
+            return Response(RideSerializer(active_ride).data)
         else:
             return Response({'message': 'No active ride found'}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=False, methods=['get'])
+    def history(self, request):
+        """Get ride history with pagination and filters"""
+        user = request.user
+        
+        if user.user_type == 'rider':
+            queryset = Ride.objects.filter(rider=user, status='completed')
+        elif user.user_type == 'driver':
+            queryset = Ride.objects.filter(driver__user=user, status='completed')
+        else:
+            return Response(
+                {'error': 'Invalid user type'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Apply filters
+        date_from = request.query_params.get('date_from')
+        date_to = request.query_params.get('date_to')
+        ride_type = request.query_params.get('ride_type')
+        
+        if date_from:
+            queryset = queryset.filter(completed_at__date__gte=date_from)
+        if date_to:
+            queryset = queryset.filter(completed_at__date__lte=date_to)
+        if ride_type:
+            queryset = queryset.filter(ride_type=ride_type)
+        
+        # Pagination
+        page_size = int(request.query_params.get('page_size', 10))
+        page = int(request.query_params.get('page', 1))
+        
+        start = (page - 1) * page_size
+        end = start + page_size
+        
+        rides = queryset[start:end]
+        total_count = queryset.count()
+        
+        return Response({
+            'rides': RideSerializer(rides, many=True).data,
+            'total_count': total_count,
+            'page': page,
+            'page_size': page_size,
+            'has_next': end < total_count
+        })
+
+    @action(detail=False, methods=['get'])
+    def statistics(self, request):
+        """Get ride statistics for the user"""
+        user = request.user
+        
+        if user.user_type == 'rider':
+            rides = Ride.objects.filter(rider=user, status='completed')
+            stats = {
+                'total_rides': rides.count(),
+                'total_spent': sum(ride.fare for ride in rides),
+                'average_rating_given': rides.filter(rating_by_rider__isnull=False).aggregate(
+                    avg=Avg('rating_by_rider')
+                )['avg'] or 0,
+                'favorite_destinations': rides.values('destination_address').annotate(
+                    count=Count('id')
+                ).order_by('-count')[:5]
+            }
+        elif user.user_type == 'driver':
+            rides = Ride.objects.filter(driver__user=user, status='completed')
+            stats = {
+                'total_rides': rides.count(),
+                'total_earned': sum(ride.fare for ride in rides),
+                'average_rating': rides.filter(rating_by_driver__isnull=False).aggregate(
+                    avg=Avg('rating_by_driver')
+                )['avg'] or 0,
+                'total_distance': sum(ride.distance or 0 for ride in rides),
+                'acceptance_rate': 85,  # This would need more complex calculation
+            }
+        else:
+            return Response(
+                {'error': 'Invalid user type'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        return Response(stats)
