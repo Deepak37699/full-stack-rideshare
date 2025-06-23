@@ -193,7 +193,7 @@ class SmartSuggestionAdmin(admin.ModelAdmin):
 
 
 # Custom admin views for analytics
-class RideAnalyticsAdmin:
+class RideAnalyticsAdmin(admin.ModelAdmin):
     """Custom admin views for ride analytics"""
     
     def changelist_view(self, request, extra_context=None):

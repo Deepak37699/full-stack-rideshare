@@ -34,7 +34,7 @@ void main() {
 
     // Verify that the app starts with splash screen
     expect(find.byType(MaterialApp), findsOneWidget);
-    
+
     // The splash screen should be present initially with inDrive Nepal text
     expect(find.text('inDrive Nepal'), findsOneWidget);
   });
