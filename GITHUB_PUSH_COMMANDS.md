@@ -1,11 +1,16 @@
-# GitHub Push Commands for RideShare Application
+# GitHub Push Commands for Proper Contribution Tracking
 
-## Prerequisites
+## ✅ Successfully Pushed with Correct Attribution!
 
-1. Create a new repository on GitHub (e.g., `rideshare-app`)
-2. Copy the repository URL (HTTPS or SSH)
+Your latest commit has been pushed to GitHub with the correct configuration:
 
-## Quick Push Commands
+```bash
+Author: Deepak37699 <deepak.yadav37699k@gmail.com>
+Repository: https://github.com/Deepak37699/full-stack-rideshare.git
+Branch: main
+```
+
+## 🚀 Recommended Git Workflow for Future Commits
 
 ### Option 1: HTTPS (Recommended for beginners)
 
